@@ -1,0 +1,167 @@
+最近终于干掉了高中两年都没有搞定的题目：食物链，就是那个A吃B，B吃C，C吃A这道NOI的经典题。当年自己写了200多行，把自己都写碎了，也没弄出来，最近学习了带权并查集，终于搞定了这道题。
+
+首先说说并查集为什么能带权值……  原先，最基本的并查集是维护等价关系了，如果A跟B处于同一集合，那说明A和B就是等价的。但是如果给并查集每个边覆上权值的话，那么并查集就不光能表示等价关系，而且只要是“有关系”，就能表示。
+
+当时我见到了这么一道题：我有变量A到Z，每次我会告诉你两个变量的差（A-C=3 , R-S=2），然后途中我也会提问两个变量的差是多少，你要回答我“是多少”，或者“不确定”。这里我们就可以用带权并查集：如果两个变量之间已经“有关系”，那么就合并入一个集合，每个元素和它父亲的边权值就是这个差值。例如我们会有A->C =3， R->S=2，如果又有C->R=1，则沿着这条路走下去，就有了A->S=6。我们成功地维护了一个表示“有关系”的并查集，同时我们还用边的权值维护了这个关系是什么。
+
+不妨再看看NOIP的关押罪犯（2个监狱），简化来讲，关键一步就是每次给你两个数A,B，告诉你A,B必须不能在一个监狱里，问你是否可行。那么，对于这样的关系，我们可以有A->B=1表示A和B不在一起，0表示在一起，然后边的权值都要模2.这样，如果A->B=1， B->C=1，则A->C=0，这个时候如果我告诉你A->C=1，就肯定没戏了。
+
+食物链的解题报告有很多，我觉得最好的解法就是带权并查集，上面那个关押罪犯搞明白了，这种问题就都不是问题了。唯一值得注意的是，我在很多地方看到在维护权值的时候，作者用的都是找规律的办法，其实用向量的思想去想会非常简明而且绝不会出错。举个例子，最难的一步“合并”，假设我们合并x1, x2, x1的祖宗叫px1, x2的祖宗叫px2，我们在进行find（x1），find（x2）操作以后，就知道了x1->px1 = value[x1]，x2->px2 = value[x2], 同时我们想添加的关系就是x1->x2 = d，现在关键问题是我们要知道px1 -> px2应该是多少（假设把x1并到x2去），那么根据向量的思想，很容易我们就得出，px1 -> px2 = px1->x1 + x1->x2 + x2->px2 = -value[x1] + d + value[x2] ，需要的话再取模即可。（注意！！ 在对m取模之前，一定要加上m，不然如果d=value[x2]=0，你就死定了，1小时人生换来的教训，食物链标程里面有，但是当时我没注意，付出代价了……  一定一定写成 （-value[x1] + d + value[x2] + m）%m 。 ）同样的，find的时候，我们假设要find(x1)，x1当前的父亲是px1, 我们用一个p_old来代表px1，假设新的父亲是p_new，我们想知道x1->p_new是多少。已知的是x1->p_old, 而p_old->p_new 在递归的时候已经更新了，所以我们发现把这两个向量加起来就是x1->p_new，就可以很欢快地维护权值了。
+
+http://blog.csdn.net/shuangde800/article/details/7974668
+食物链：这题是稍微复杂的种类并查集， 共有3种动物，那么显然就应该分为3类。
+假设x 吃 y， 那么x比y的权值大1.因为共有3种动物，那么权值要分为0，1，2三种。0是根结点， 如果有个节点的权值是1，就表示这个结点是吃根结点的，如果权值是2，表示2是吃1的（2比1大1），而因为三种动物循环吃的关系， 2 也就是被0吃的。（第二句话，其实就是想说1吃0,2吃1,0吃2，这个人说得太罗嗦了）
+然后在合并时，按照关系分类计算它们的权值。
+
+ 
+初看本题，有些摸不着头脑的感觉，好像只有用搜索去找出所有符合前x-1（不定）个回答的序列，再一一证明它们均不可能符合第x个回答，然后输出x，但这个算法是极其低效的，根本不可能符合题目的时、空要求，必须另辟蹊径。再仔细看看题目规定的数据规模：01序列的长度小于等于1000000000；问题以及它们的回答的个数小于等于5000。这似乎在提示我们换一个角度思考，即，从那5000个问题入手可能会使问题简单一些。我们可以将读入的一个个问答都保存下来，若当前的问答涉及的数列范围与保存过的问答间有联系，即可进行进一步处理：若两者涉及的范围一模一样， 则可直接判断它们是否矛盾，若矛盾则可直接输出结果，否则处理下一个问答；若两者在边界上相邻，则将它们合并，且删去旧的序列，新序列的奇偶性由两者的奇偶性进行异或运算得到（证明 如下：假设两者的奇偶性分别为s1、s2，新序列的奇偶性为s3（奇数为1；偶数为0），则根据奇+奇=偶、奇+偶=奇、偶+偶=偶可得：若s1=奇，s2=奇，则s3=s1 xor s2=1 xor 1=0=偶；若s1=偶，s2=奇，则s3=s1 xor s2=0 xor 1=1=奇；若s1=偶，s2=偶，则s3= s1 xor s2=0 xor 0=0=偶。故得证）。若所有问答都处理完了仍无矛盾，则输出问答总数。考虑到算法涉及数列中的删除，故用链表存储（见parity’.pas）。但在以上算法中查找问答之间的关系十分费时，难以满足题目的时限要求，还得继续优化。首先，序列可以按照问答涉及的数据范围的大小排序，起点小的在前，起点相同时终点小的在前。其次，对于当前输入的问答，找出保存过的问答中与它起点相同的问答，若终点也相同则按上文叙述的处理，否则将二者相同的部分删去，即将终点较小的问答删去，终点较大的问答只保留后一部分，它的奇偶性也由异或运算求得，这么做与上文叙述的将问答合并的原理是相同的，但操作后剩余的问答数目却少得多（合并时两端关联的都要处理），使算法优化了不少。至于最终的数据结构，综合考虑有序数列的查找、不同数据结构的操作速度、编程复杂度和程序可读性等，还是用数组比较合适(见 
+首先询问的个数m<=5000
+如何转化成并查集?
+a b even等价于(0..a-1)与(0..b)同奇同偶
+a b odd等价于(0..a-1)与(0..b)不同奇同偶
+这样对于a b even,就union(same(a-1),same(b))&union(diff(a-1),diff(b))
+对于a b odd,则union(same(a-1),diff(b))&union(diff(a-1),same(b))
+same(x)和diff(x)随便选,比如same(x):=x;diff(x):=x+block;
+反之,find(same(a-1))=find(same(b))等价于a b even(此时必然有find(diff(a-1))=find(diff(b))),find(diff(a-1))=find(same(b))等价于a b odd(同样此时必然有find(same(a-1))=find(diff(b)))这样就可以判断了.
+循环每个提问,先判断,不符合就writeln&break,否则union;
+但这样还不可以,因为n<=10^9,会MLE.
+这就用着hash了.n很大,但m很小(<=5000),这样会出现的数<=10000个,所以只需要对这10000个数DisUnionJet,为了把这10000个数一一映射到0..10000中,我们用hash.function hash(x)是原来的x在hashtable中的位置,原来的x则映射在hashtable中.以后就可以用hash(x)代替x了.这里的hash方法叫做开放寻址法(参见算法导论)
+当然,这样same(x):=same(hash(x));diff(x):=diff(hash(x))
+另外再设一个bb:boolean来判断如果循环后i=n时有没有经历break;
+这样,程序'应该'就完成了
+程序有3个难点:(1)区间奇偶转化为两区间奇偶是否相同(还是比较简单的)(2)两区间奇偶是否相同转化成并查集模型(3)利用hash压缩空间. 
+#include<iostream>
+#include<cstring>
+#include<string>
+using namespace std;
+const int BLOCK=10000;
+const int HASHING=6000;//important   
+int fath[2*BLOCK+1],hash_table[HASHING+1];
+int hash(int x)//构建哈希表 
+{
+    int ret;
+    ret=x%HASHING;
+    while(hash_table[ret]!=-1&&hash_table[ret]!=x) ret=(ret+1)%HASHING;
+    hash_table[ret]=x;
+    return ret;
+}//important 
+int find(int x){return fath[x]==x?x:fath[x]=find(fath[x]);}
+void uion(int x,int y)
+{
+    x=find(x);
+    y=find(y);
+    if(x==y) return ;
+    fath[x]=y;
+}
+int main()
+{
+    int len,n;
+    while(cin>>len>>n)
+    {
+        int ans,flag=0;
+        for(int i=1;i<2*BLOCK+1;i++) fath[i]=i;
+        memset(hash_table,-1,sizeof(hash_table));//初始化哈希表  important
+        for(int ci=1;ci<=n;ci++)
+        {
+            int a,b,signal;
+            string str;
+            cin>>a>>b>>str;
+            if(flag) continue;
+            signal=(str=="even"?1:0);//1表示偶数，0表示奇数 
+            a=hash(a-1);//important
+            b=hash(b);//important
+            if(signal)
+            {
+                if(find(a)==find(b+BLOCK)) {ans=ci-1;flag=1;continue;}
+                uion(a,b);
+                uion(a+BLOCK,b+BLOCK);
+            }
+            else 
+            {
+                if(find(a)==find(b)) {ans=ci-1;flag=1;continue; }
+                uion(a,b+BLOCK);
+                uion(a+BLOCK,b);
+            }
+        }
+        if(flag==0) ans=n;
+        cout<<ans<<endl;
+    }
+    return 0;
+}                
+ 
+这个题是并查集的扩展。可以这样考虑：如果[s, t]这个区间内数的和为even，那么表示[0, s - 1]和[0, t]（简记为s - 1和t）是奇偶性相同的，反之就是奇偶性不同的。但是我们在处理这个问题的时候没有必要像处理一般并查集问题一样把奇偶性相同的合并，把奇偶性不同的处理为不同的集合。而是把所有已经发生了关系的集合都统统合并，并为每个元素都增加一个域p_r[i]表示结点i与其父亲结点（p[i]）的关系是p_r[i]，p_r[i] = 1表示其与父结点的奇偶性相同，p_r[i] = 0表示奇偶性不同。那么只需要稍微思考一下在合并集合的时候（有两种：一种是奇偶性相同的集合合并，一种是奇偶性不同的集合合并）怎么维护p_r域就可以了。还需要注意的是因为lenth太大（最大为1000000000），而questions and answers比较小（最大为5000），所以需要在读入数据以后进行离散化（当然是离散化三部曲：sort、unique、lower_bound了！）。具体的实现细节请参考代码。
+代码如下（URAL的）：
+#include <cstdio>
+#include <cstring>
+#include <algorithm>
+using namespace std;
+struct question {
+    int s, t;
+    char f;
+};
+struct uf_set {
+    int p[10000], p_r[10000];
+    void clear() {
+        for (int i = 0; i < 10000; ++i) {
+            p[i] = i;
+            p_r[i] = 1;
+        }
+    }
+    int get_parent(int k) {
+        if (p[k] == k)
+            return k;
+        int tmp = get_parent(p[k]);
+        p_r[k] = 1 ^ p_r[p[k]] ^ p_r[k];
+        return p[k] = tmp;
+    }
+    bool set_same(int x, int y) {
+        int p_x = get_parent(x), p_y = get_parent(y);
+        if (p_x == p_y)
+            return p_r[x] == p_r[y];
+        p[p_y] = p_x;
+        p_r[p_y] = 1 ^ p_r[x] ^ p_r[y];
+        return true;
+    }
+    bool set_diff(int x, int y) {
+        int p_x = get_parent(x), p_y = get_parent(y);
+        if (p_x == p_y)
+            return p_r[x] != p_r[y];
+        p[p_y] = p_x;
+        p_r[p_y] = p_r[x] ^ p_r[y];
+        return true;
+    }
+};
+int l, n, num[10000], ans;
+question q[5000];
+uf_set union_find_set;
+int main() {
+    char buf[10];
+    for (scanf("%d", &l); l != -1; scanf("%d", &l)) {
+        scanf("%d", &n);
+        for (int i = 0; i < n; ++i) {
+            scanf("%d%d%s", &q[i].s, &q[i].t, buf);
+            --q[i].s;
+            q[i].f = buf[0];
+            num[i * 2] = q[i].s;
+            num[i * 2 + 1] = q[i].t;
+        }
+        sort(num, num + n * 2);
+        l = unique(num, num + n * 2) - num;
+        for (int i = 0; i < n; ++i) {
+            q[i].s = lower_bound(num, num + l, q[i].s) - num;
+            q[i].t = lower_bound(num, num + l, q[i].t) - num;
+        }
+        union_find_set.clear();
+        for (ans = 0; ans < n; ++ans) {
+            if (q[ans].f == 'e') {
+                if (!union_find_set.set_same(q[ans].s, q[ans].t))
+                    break;
+            } else if (q[ans].f == 'o') {
+                if (!union_find_set.set_diff(q[ans].s, q[ans].t))
+                    break;
+            }
+        }
+        printf("%d\n", ans);
+    }
+    return 0;
+}
